@@ -2,6 +2,8 @@
 
 A planner that breaks assignments into small steps. It started as a claude.ai artifact and now runs as a desktop app and as a Chrome or Edge extension.
 
+**Use it online:** https://lampenohto-cyber.github.io/next-step/. It works on phones too. Each push to `main` redeploys `src/` there through `.github/workflows/pages.yml`. The extension's side panel and the desktop shortcut both load this address, so they get updates automatically. When the site can't be reached, the extension falls back to the copy bundled inside it.
+
 ## Layout
 
 - `src/`: the page (`index.html`, `app.js`). `claude.js` handles Claude calls with your own API key and stores photos in IndexedDB. `vendor/` holds PDF.js. `src/` also has a web-app manifest and an offline service worker, for hosting it over https.
