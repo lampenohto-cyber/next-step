@@ -275,7 +275,7 @@ details.why summary{cursor:pointer;color:var(--muted);font-size:13.5px}
     <p class="thinking" id="readStatus" hidden></p>
   </form>
 
-  <!-- step 2: review what Claude found -->
+  <!-- step 2: review what the AI found -->
   <form class="form" id="review" hidden>
     <p class="review-head">Here's what I found. Check it, especially the due date, then save.</p>
     <div>
@@ -341,13 +341,13 @@ details.why summary{cursor:pointer;color:var(--muted);font-size:13.5px}
     <summary>Settings &amp; backup</summary>
     <div class="set-grid">
       <div>
-        <label class="lbl" for="apiKey">Claude API key</label>
+        <label class="lbl" for="apiKey">AI API key: Claude or Gemini</label>
         <div class="field-row" style="margin:0">
-          <input class="inp" id="apiKey" type="password" placeholder="sk-ant-…" autocomplete="off" spellcheck="false" style="flex:1;min-width:200px">
+          <input class="inp" id="apiKey" type="password" placeholder="sk-ant-… or AIza…" autocomplete="off" spellcheck="false" style="flex:1;min-width:200px">
           <button class="btn" type="button" id="saveKey">Save key</button>
           <button class="btn ghost" type="button" id="clearKey">Remove</button>
         </div>
-        <p class="small-note" id="keyNote">Optional. With a key, “Read it” and “Break it down” use Claude to read instructions, photos and PDFs. Without one, you get a standard breakdown. The key stays on this device and is sent only to api.anthropic.com. Get one at console.anthropic.com.</p>
+        <p class="small-note" id="keyNote"><strong id="keyUsing"></strong> Optional. With a key, “Read it” and “Break it down” read instructions, photos and PDFs and write steps that fit the assignment. Without one, you get a standard breakdown. Paste a Claude key (sk-ant-…, from console.anthropic.com) or a Gemini key (AIza…, from aistudio.google.com). The key stays on this device and is sent only to that company’s API.</p>
       </div>
       <div>
         <span class="lbl">Backup</span>

@@ -90,10 +90,10 @@ let toastT, claudeErr = "";
 const fileUrl = f => (f.id && assets && assets.url(f.id)) || f.url || "";
 function noteClaudeError(e){
   const c = e && e.code;
-  claudeErr = c === "bad_key" ? "Claude rejected the API key. Check it in Settings." :
-    c === "refusal" ? "Claude couldn't help with this one. Fill in the details yourself." :
-    e && e.name === "TypeError" ? "Couldn't reach Claude. Check your connection." :
-    "Claude had a problem" + (e && e.message ? ": " + String(e.message).slice(0, 120) : "") + ".";
+  claudeErr = c === "bad_key" ? `${NextStep.providerName()} rejected the API key. Check it in Settings.` :
+    c === "refusal" ? `${NextStep.providerName()} couldn't help with this one. Fill in the details yourself.` :
+    e && e.name === "TypeError" ? `Couldn't reach ${NextStep.providerName()}. Check your connection.` :
+    NextStep.providerName() + " had a problem" + (e && e.message ? ": " + String(e.message).slice(0, 120) : "") + ".";
 }
 function toast(msg){
   const t = $("toast"); t.textContent = msg; t.hidden = false;
@@ -388,7 +388,7 @@ Return only JSON: {"size":"small|medium|large","estimateMin":90,"sizeWhy":"...",
       noteClaudeError(e);
     }
   }
-  if(!steps || !steps.length){ steps = fallbackSteps(a); toast(sample ? (claudeErr || "Used a standard breakdown. Edit the steps to fit.") : "Used a standard breakdown. Add a Claude API key in Settings for tailored steps."); }
+  if(!steps || !steps.length){ steps = fallbackSteps(a); toast(sample ? (claudeErr || "Used a standard breakdown. Edit the steps to fit.") : "Used a standard breakdown. Add a Claude or Gemini API key in Settings for tailored steps."); }
   const keep = a.steps.filter(s => s.done);
   a.steps = keep.concat(steps.map(([t,m]) => ({id:uid(), text:t, min:m, done:false, doneAt:null})));
   if(good && !a.goodEnough) a.goodEnough = good;
@@ -681,8 +681,8 @@ $("form").addEventListener("submit", async e => {
   claudeErr = "";
   const {r, fallback, imagesSeen} = await readAssignment(text, pending.photos);
   $("readBtn").disabled = false; $("readStatus").hidden = true;
-  if(fallback && pending.hints) toast(claudeErr || "Filled in from the course page. Add a Claude API key in Settings for steps that fit this assignment.");
-  else if(fallback) toast(claudeErr || (pending.photos.length ? "Add a Claude API key in Settings to have photos read. Fill in the details below for now." : "Add a Claude API key in Settings to have this read automatically. Fill in the details below for now."));
+  if(fallback && pending.hints) toast(claudeErr || "Filled in from the course page. Add a Claude or Gemini API key in Settings for steps that fit this assignment.");
+  else if(fallback) toast(claudeErr || (pending.photos.length ? "Add a Claude or Gemini API key in Settings to have photos read. Fill in the details below for now." : "Add a Claude or Gemini API key in Settings to have this read automatically. Fill in the details below for now."));
   else if(pending.photos.length && !imagesSeen) toast("Photos couldn't be read in this view, so only the text was used.");
   fillReview(r);
 });
@@ -809,7 +809,7 @@ render();
 // re-render at midnight / when coming back to the tab
 document.addEventListener("visibilitychange", () => { if(!document.hidden) render(); });
 
-// ---------- local runtime: Claude key, photos, backup ----------
+// ---------- local runtime: AI key, photos, backup ----------
 sample = NextStep.makeSample();
 assets = NextStep.assets;
 assets.load(state.assignments.flatMap(a => (a.files || []).map(f => f.id))).then(() => { if(openId) renderList(); });
@@ -819,9 +819,11 @@ $("saveKey").addEventListener("click", () => {
   const v = $("apiKey").value.trim();
   if(!v || v.startsWith("•")) { $("apiKey").focus(); return; }
   NextStep.setKey(v); sample = NextStep.makeSample();
-  $("apiKey").value = "••••••••••••"; toast("Key saved on this device.");
+  $("apiKey").value = "••••••••••••"; toast(`${NextStep.providerName()} key saved on this device.`); keyNote();
 });
-$("clearKey").addEventListener("click", () => { NextStep.setKey(""); sample = null; $("apiKey").value = ""; toast("Key removed."); });
+$("clearKey").addEventListener("click", () => { NextStep.setKey(""); sample = null; $("apiKey").value = ""; toast("Key removed."); keyNote(); });
+function keyNote(){ $("keyUsing").textContent = NextStep.getKey() ? `Using ${NextStep.providerName()}.` : ""; }
+keyNote();
 $("apiKey").addEventListener("focus", e => { if(e.target.value.startsWith("•")) e.target.value = ""; });
 
 $("exportBtn").addEventListener("click", () => {

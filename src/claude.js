@@ -1,13 +1,18 @@
-// Stand-ins for the claude.ai artifact runtime: Claude calls with the user's own API key,
-// and photo storage in IndexedDB. Exposed as window.NextStep.
+// Stand-ins for the claude.ai artifact runtime: AI calls with the user's own API key
+// (Claude or Gemini, picked from the key's prefix), and photo storage in IndexedDB. Exposed as window.NextStep.
 (() => {
 "use strict";
 const KEY_LS = "nextstep.apiKey";
-const API = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-opus-5-5";
+const CLAUDE_API = "https://api.anthropic.com/v1/messages";
+const CLAUDE_MODEL = "claude-opus-5-5";
+const GEMINI_API = "https://generativelanguage.googleapis.com/v1beta/";
+const GEMINI_MODEL_LS = "nextstep.geminiModel";
 
 const getKey = () => { try { return localStorage.getItem(KEY_LS) || ""; } catch(e){ return ""; } };
 const setKey = k => { try { k ? localStorage.setItem(KEY_LS, k) : localStorage.removeItem(KEY_LS); } catch(e){} };
+// Google API keys start with "AIza"; anything else is treated as a Claude key ("sk-ant-…")
+const provider = (k = getKey()) => /^AIza/.test(k) ? "gemini" : "claude";
+const providerName = (k = getKey()) => provider(k) === "gemini" ? "Gemini" : "Claude";
 
 const blobToBase64 = blob => new Promise((res, rej) => {
   const r = new FileReader();
@@ -15,13 +20,89 @@ const blobToBase64 = blob => new Promise((res, rej) => {
   r.onerror = () => rej(r.error);
   r.readAsDataURL(blob);
 });
+const fail = (msg, code, status) => Object.assign(new Error(msg), {code, status});
 
 function parseJSON(text){
   const t = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
   try { return JSON.parse(t); } catch(e){}
   const a = t.indexOf("{"), b = t.lastIndexOf("}");
   if(a >= 0 && b > a) return JSON.parse(t.slice(a, b + 1));
-  throw Object.assign(new Error("Claude didn't return JSON"), {code:"bad_json"});
+  throw fail("The reply wasn't JSON", "bad_json");
+}
+
+async function askClaude(key, prompt, images, quick){
+  const content = [];
+  for(const img of images){
+    content.push({type:"image", source:{type:"base64", media_type:img.type || "image/jpeg", data:await blobToBase64(img)}});
+  }
+  content.push({type:"text", text:prompt + "\n\nReply with the JSON object only, no other text."});
+  const res = await fetch(CLAUDE_API, {
+    method:"POST",
+    headers:{
+      "content-type":"application/json",
+      "x-api-key":key,
+      "anthropic-version":"2026-10-21",
+      "anthropic-beta":"server-side-fallback-2026-07-01",
+      "anthropic-dangerous-direct-browser-access":"true"
+    },
+    body:JSON.stringify({
+      model:CLAUDE_MODEL,
+      max_tokens:16000,
+      output_config:{effort: quick ? "low" : "medium"},
+      fallbacks:"default",
+      messages:[{role:"user", content}]
+    })
+  });
+  if(!res.ok){
+    let msg = res.statusText;
+    try { msg = (await res.json()).error?.message || msg; } catch(e){}
+    throw fail(msg, res.status === 401 ? "bad_key" : "api_error", res.status);
+  }
+  const data = await res.json();
+  if(data.stop_reason === "refusal") throw fail("Claude declined this request", "refusal");
+  return parseJSON((data.content || []).filter(b => b.type === "text").map(b => b.text).join(""));
+}
+
+// Gemini model names change over time, so start from the "latest flash" alias and,
+// if Google doesn't know it, pick the newest flash model the key can use.
+async function geminiModel(key, refresh){
+  let m = ""; try { m = localStorage.getItem(GEMINI_MODEL_LS) || ""; } catch(e){}
+  if(m && !refresh) return m;
+  if(!refresh) return "gemini-flash-latest";
+  const res = await fetch(GEMINI_API + "models?pageSize=200&key=" + encodeURIComponent(key));
+  if(!res.ok) throw fail("Couldn't list Gemini models", res.status === 400 || res.status === 403 ? "bad_key" : "api_error", res.status);
+  const ver = n => (n.match(/(\d+(?:\.\d+)?)/) || [0, 0])[1] * 1;
+  const usable = ((await res.json()).models || [])
+    .filter(x => (x.supportedGenerationMethods || []).includes("generateContent"))
+    .map(x => x.name.replace(/^models\//, ""))
+    .filter(n => /flash/.test(n) && !/lite|tts|image|live|audio|embed|thinking|exp/.test(n));
+  usable.sort((a, b) => ver(b) - ver(a) || (/preview/.test(a) - /preview/.test(b)));
+  if(!usable.length) throw fail("No Gemini model available for this key", "api_error");
+  try { localStorage.setItem(GEMINI_MODEL_LS, usable[0]); } catch(e){}
+  return usable[0];
+}
+
+async function askGemini(key, prompt, images){
+  const parts = [];
+  for(const img of images) parts.push({inline_data:{mime_type:img.type || "image/jpeg", data:await blobToBase64(img)}});
+  parts.push({text:prompt});
+  const body = JSON.stringify({contents:[{role:"user", parts}], generationConfig:{responseMimeType:"application/json"}});
+  let model = await geminiModel(key, false);
+  for(let attempt = 0; attempt < 2; attempt++){
+    const res = await fetch(GEMINI_API + "models/" + encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(key),
+      {method:"POST", headers:{"content-type":"application/json"}, body});
+    if(res.status === 404 && attempt === 0){ model = await geminiModel(key, true); continue; }
+    if(!res.ok){
+      let msg = res.statusText;
+      try { msg = (await res.json()).error?.message || msg; } catch(e){}
+      const badKey = res.status === 401 || res.status === 403 || (res.status === 400 && /api key/i.test(msg));
+      throw fail(msg, badKey ? "bad_key" : "api_error", res.status);
+    }
+    const data = await res.json();
+    const cand = (data.candidates || [])[0];
+    if(data.promptFeedback?.blockReason || !cand || cand.finishReason === "SAFETY") throw fail("Gemini declined this request", "refusal");
+    return parseJSON((cand.content?.parts || []).map(p => p.text || "").join(""));
+  }
 }
 
 // Same shape the app used from claude.use("sample"): json(prompt, {modelTier, images}) and limits().
@@ -31,38 +112,9 @@ function makeSample(){
     async limits(){ return {images:true}; },
     async json(prompt, opts = {}){
       const key = getKey();
-      if(!key) throw Object.assign(new Error("No API key"), {code:"not_granted"});
-      const content = [];
-      for(const img of opts.images || []){
-        content.push({type:"image", source:{type:"base64", media_type:img.type || "image/jpeg", data:await blobToBase64(img)}});
-      }
-      content.push({type:"text", text:prompt + "\n\nReply with the JSON object only, no other text."});
-      const res = await fetch(API, {
-        method:"POST",
-        headers:{
-          "content-type":"application/json",
-          "x-api-key":key,
-          "anthropic-version":"2026-10-21",
-          "anthropic-beta":"server-side-fallback-2026-07-01",
-          "anthropic-dangerous-direct-browser-access":"true"
-        },
-        body:JSON.stringify({
-          model:MODEL,
-          max_tokens:16000,
-          output_config:{effort: opts.modelTier === "quick" ? "low" : "medium"},
-          fallbacks:"default",
-          messages:[{role:"user", content}]
-        })
-      });
-      if(!res.ok){
-        let msg = res.statusText;
-        try { msg = (await res.json()).error?.message || msg; } catch(e){}
-        throw Object.assign(new Error(msg), {code: res.status === 401 ? "bad_key" : "api_error", status:res.status});
-      }
-      const data = await res.json();
-      if(data.stop_reason === "refusal") throw Object.assign(new Error("Claude declined this request"), {code:"refusal"});
-      const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
-      return parseJSON(text);
+      if(!key) throw fail("No API key", "not_granted");
+      const images = opts.images || [];
+      return provider(key) === "gemini" ? askGemini(key, prompt, images) : askClaude(key, prompt, images, opts.modelTier === "quick");
     }
   };
 }
@@ -103,7 +155,7 @@ const assets = {
   url: id => urls.get(id) || ""
 };
 
-window.NextStep = {getKey, setKey, makeSample, assets};
+window.NextStep = {getKey, setKey, provider, providerName, makeSample, assets};
 })();
 
 if("serviceWorker" in navigator && /^https?:$/.test(location.protocol)){

@@ -25,9 +25,9 @@ Run `powershell -File install-app.ps1`, then open **Next Step** from the Start m
 4. To add an assignment from any page, select its text, right-click it and choose **Add "…" to Next Step**.
 5. On MyCourses (mycourses.aalto.fi), activity pages show a small **Add to your plan?** card in the corner. This works for assignments, quizzes, workshops, Turnitin and similar. **Add** opens the side panel at the review step, with the title, course code, due date and time read from the page in English, Finnish or Swedish. No API key is needed for this. **Not now** hides the card until your next visit, and **Don't ask here** hides it for that page for good. The card doesn't appear once a submission is marked "Submitted for grading". `extension-src/mycourses.js` reads the page and `manifest.json` lists the site.
 
-## Claude
+## AI (Claude or Gemini)
 
-"Read it" and "Break it down" need a Claude API key. Enter it under **Settings & backup** at the bottom of the page. The key is saved in that browser's local storage and is sent only to api.anthropic.com. Without a key you get the standard built-in breakdowns.
+"Read it" and "Break it down" need an API key: either Claude (`sk-ant-…`, from console.anthropic.com) or Gemini (`AIza…`, from aistudio.google.com). Enter it under **Settings & backup** at the bottom of the page. The app tells which service a key belongs to from how it starts. Claude uses `claude-opus-5-5`. Gemini uses Google's latest Flash model, and if that name ever stops working, it picks the newest Flash model your key can use. The key is saved in that browser's local storage and is sent only to that company's API. Without a key you get the standard built-in breakdowns, and MyCourses details are still filled in from the page.
 
 ## Data
 
