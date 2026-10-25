@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Next Step</title>
+<meta name="theme-color" content="#58806a">
+<link rel="icon" href="icons/icon-32.png" sizes="32x32">
+<link rel="icon" href="icons/icon-192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one calm Notion-like page column. Today's plan on top, assignments as a database list below, parking lot and research notes last. */
+:root{
+  --bg:#ffffff; --fg:#2f2e2b; --muted:#8b8780; --faint:#b9b5ad;
+  --line:#ecebe7; --hover:#f6f5f2; --panel:#fafaf8;
+  --accent:#58806a; --accent-soft:#e7efe9; --warn:#b4624a; --warn-soft:#f8ebe6; --gold:#a5812e;
+  --display:'Newsreader', Georgia, 'Times New Roman', serif;
+  --body:'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono:'Geist Mono', ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1a1a19; --fg:#e8e6e1; --muted:#9a968e; --faint:#6a675f;
+  --line:#2c2b29; --hover:#242322; --panel:#202020;
+  --accent:#8fb79d; --accent-soft:#25302a; --warn:#e0937a; --warn-soft:#352520; --gold:#d6b25e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1a1a19; --fg:#e8e6e1; --muted:#9a968e; --faint:#6a675f;
+  --line:#2c2b29; --hover:#242322; --panel:#202020;
+  --accent:#8fb79d; --accent-soft:#25302a; --warn:#e0937a; --warn-soft:#352520; --gold:#d6b25e; color-scheme:dark}
+
+*{box-sizing:border-box}
+/* base rules the claude.ai frame used to provide */
+[hidden]:not([hidden=until-found i]){display:none!important}
+body{margin:0}
+img{max-width:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.55;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 120px}
+.page{max-width:760px;margin:0 auto;padding-top:56px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+
+.icon-wrap{position:relative;margin-bottom:10px;width:max-content;max-width:100%}
+.icon{border:none;background:transparent;font-size:52px;line-height:1.1;padding:4px 6px;border-radius:8px;margin-left:-6px;font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif}
+.icon:hover{background:var(--hover)}
+.icon.empty{font-size:13px;color:var(--muted);padding:6px 8px;font-family:var(--body)}
+.picker{position:absolute;z-index:25;top:100%;left:0;margin-top:6px;background:var(--bg);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.08);padding:10px;width:min(300px, calc(100vw - 32px));display:grid;gap:8px}
+.picker-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px}
+.picker-grid button{border:none;background:transparent;font-size:22px;line-height:1;padding:5px 0;border-radius:6px}
+.picker-grid button:hover,.picker-grid button[aria-pressed="true"]{background:var(--hover)}
+.picker-own{display:flex;gap:6px}
+.picker-own .inp{flex:1}
+h1{font-family:var(--display);font-weight:500;font-size:40px;line-height:1.15;margin:0 0 6px;letter-spacing:-.01em;text-wrap:balance}
+.props{display:grid;grid-template-columns:120px 1fr;gap:6px 12px;margin:18px 0 8px;font-size:14px}
+.props dt{color:var(--muted)}
+.props dd{margin:0;min-width:0}
+.sync{font-family:var(--mono);font-size:12px;color:var(--muted)}
+
+h2{font-family:var(--body);font-weight:600;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:44px 0 10px;display:flex;align-items:center;gap:10px}
+h2 .rule{flex:1;height:1px;background:var(--line)}
+h2 .meta{font-family:var(--mono);font-weight:400;letter-spacing:0;text-transform:none}
+
+/* energy check-in */
+.energy{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:transparent;border-radius:999px;padding:3px 12px;font-size:13px;color:var(--muted)}
+.chip:hover{background:var(--hover)}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:transparent;color:var(--fg)}
+
+.callout{display:flex;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;font-size:14px;margin:12px 0}
+.callout .glyph{font-family:var(--display);font-size:20px;line-height:1.1;color:var(--accent);flex-shrink:0}
+.callout.warn .glyph{color:var(--warn)}
+.callout p{margin:0}
+.callout .small{color:var(--muted);font-size:12.5px;margin-top:4px}
+
+/* today plan */
+.plan{list-style:none;margin:0;padding:0}
+.plan li{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:start;padding:8px 6px;border-radius:6px}
+.plan li:hover{background:var(--hover)}
+.check{width:18px;height:18px;border:1.5px solid var(--faint);border-radius:4px;background:transparent;margin-top:2px;padding:0;display:grid;place-items:center}
+.check[aria-checked="true"]{background:var(--accent);border-color:var(--accent)}
+.check[aria-checked="true"]::after{content:"";width:5px;height:9px;border:solid var(--bg);border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.step-text{min-width:0}
+.step-text .t{display:block}
+.done .t{color:var(--faint);text-decoration:line-through}
+.step-text .sub{font-size:12.5px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:2px}
+.tag{display:inline-flex;align-items:center;gap:5px;font-size:12px;border-radius:4px;padding:0 6px;line-height:20px;color:var(--fg)}
+.tag .dot{width:7px;height:7px;border-radius:50%}
+.mins{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap}
+.go{border:none;background:transparent;color:var(--accent);font-size:13px;padding:2px 6px;border-radius:4px;opacity:.85}
+.go:hover{background:var(--accent-soft);opacity:1}
+.right{display:flex;gap:6px;align-items:center}
+.starter{font-family:var(--mono);font-size:11px;color:var(--gold);letter-spacing:.02em}
+.budget{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin:4px 0 2px}
+.budget i{display:block;height:100%;background:var(--accent);border-radius:2px;transition:width .3s}
+.enough{font-size:13px;color:var(--muted);margin-top:10px}
+.skip{border:none;background:transparent;color:var(--muted);font-size:12.5px;padding:2px 6px;border-radius:4px}
+.skip:hover{background:var(--hover);color:var(--fg)}
+.skipped{font-size:13px;color:var(--muted);margin:6px 0 0;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center}
+.skipped .sk{color:var(--fg)}
+.coming{margin-top:18px;border-top:1px solid var(--line);padding-top:10px}
+.coming-head{font-size:12.5px;color:var(--muted);margin:0 6px 4px;display:flex;flex-wrap:wrap;gap:4px 12px}
+.coming-head span{color:var(--accent)}
+.coming-row{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:5px 6px;border-radius:6px;font-size:13.5px;color:var(--muted)}
+.coming-row:hover{background:var(--hover)}
+.coming-row .ct{color:var(--fg);min-width:0}
+.coming-row .cm{font-family:var(--mono);font-size:11.5px}
+
+/* assignments */
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
+.btn{border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:5px 12px;font-size:13.5px}
+.btn:hover{background:var(--hover)}
+.btn.primary{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.btn.primary:hover{opacity:.88;background:var(--fg)}
+.btn.ghost{border-color:transparent;color:var(--muted)}
+.btn:disabled{opacity:.5;cursor:default}
+
+.group-label{font-size:12.5px;color:var(--muted);margin:18px 6px 4px;display:flex;gap:8px;align-items:baseline}
+.group-label.overdue{color:var(--warn)}
+.count{font-family:var(--mono);font-size:11.5px;color:var(--faint)}
+
+.asg{border-bottom:1px solid var(--line)}
+.asg-row{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:start;padding:10px 6px;border-radius:6px}
+.asg-row:hover{background:var(--hover)}
+.asg-title{background:none;border:none;padding:0;text-align:left;font-weight:500;width:100%;min-width:0}
+.asg-title:hover{text-decoration:underline;text-decoration-color:var(--faint);text-underline-offset:3px}
+.due{font-family:var(--mono);font-size:12px;white-space:nowrap;text-align:right}
+.due.over{color:var(--warn)} .due.today{color:var(--gold)} .due.soon{color:var(--fg)} .due.later{color:var(--muted)}
+.prog{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.ex{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);border:1px dashed var(--faint);border-radius:3px;padding:0 4px}
+.feel{font-size:12px;color:var(--muted)}
+
+.detail{padding:4px 6px 18px 38px}
+.detail .steps{list-style:none;margin:0 0 8px;padding:0}
+.detail .steps li{display:grid;grid-template-columns:22px 1fr auto auto;gap:8px;align-items:start;padding:4px 0}
+.detail input[type=text].step-edit{border:none;background:transparent;padding:0;width:100%;min-width:0}
+.detail input.step-edit:focus{outline:none;border-bottom:1px solid var(--line)}
+.x{border:none;background:none;color:var(--faint);padding:0 4px;font-size:15px;line-height:1}
+.x:hover{color:var(--warn)}
+.field-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.lbl{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
+.inp{border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:6px 9px;width:100%;min-width:0}
+.inp:focus{outline:none;border-color:var(--accent)}
+textarea.inp{resize:vertical;min-height:54px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}
+.thinking{font-size:13px;color:var(--muted);font-style:italic}
+
+/* add form */
+.form{border:1px solid var(--line);border-radius:8px;padding:16px;margin:8px 0 14px;display:grid;gap:12px;background:var(--panel)}
+.cls-pick{display:flex;flex-wrap:wrap;gap:6px}
+.cls-pick button{border:1px solid var(--line);background:var(--bg);border-radius:4px;padding:1px 8px;font-size:12.5px;display:inline-flex;gap:6px;align-items:center}
+.cls-pick button[aria-pressed="true"]{border-color:var(--fg)}
+.cls-pick .dot{width:8px;height:8px;border-radius:50%}
+.swatches{display:flex;gap:6px;flex-wrap:wrap}
+.swatches button{width:20px;height:20px;border-radius:50%;border:2px solid transparent;padding:0}
+.swatches button[aria-pressed="true"]{border-color:var(--fg)}
+
+textarea.big{min-height:140px}
+.drop{border:1.5px dashed var(--faint);border-radius:8px;padding:18px 14px;text-align:center;color:var(--muted);font-size:13.5px;cursor:pointer;display:grid;gap:2px;transition:background .15s,border-color .15s}
+.drop strong{color:var(--fg);font-weight:500}
+.drop span{font-size:12px}
+.drop:hover,.drop.over{background:var(--accent-soft);border-color:var(--accent)}
+.filenote{margin:0;font-size:12.5px;color:var(--muted)}
+.page-drop{position:fixed;inset:0;z-index:40;background:color-mix(in srgb, var(--bg) 82%, transparent);display:grid;place-items:center;font-family:var(--display);font-size:26px;color:var(--accent);pointer-events:none}
+.photos{display:flex;gap:8px;flex-wrap:wrap}
+.photos:empty{display:none}
+.thumb{position:relative;width:84px;height:84px;border-radius:6px;overflow:hidden;border:1px solid var(--line);background:var(--hover)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb button{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;border:none;background:var(--bg);color:var(--fg);font-size:13px;line-height:20px;padding:0;opacity:.9}
+a.thumb{display:block}
+.review-head{margin:0;font-size:14px}
+.flag{margin:-4px 0 0;font-size:12.5px;color:var(--gold)}
+.size{margin:0 0 8px;font-size:13px;color:var(--muted)}
+.rsteps{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.rsteps li{display:grid;grid-template-columns:1fr 64px 22px;gap:6px;align-items:center}
+.source{margin:14px 0 0}
+.source summary{cursor:pointer;font-size:13px;color:var(--muted)}
+.source .txt{white-space:pre-wrap;font-size:13.5px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin:8px 0;max-height:260px;overflow:auto;overflow-wrap:anywhere}
+
+/* parking lot */
+.dump{list-style:none;padding:0;margin:0}
+.dump li{display:flex;gap:10px;align-items:baseline;padding:5px 6px;border-radius:6px}
+.dump li:hover{background:var(--hover)}
+.dump li::before{content:"–";color:var(--faint)}
+.dump span{flex:1;min-width:0;overflow-wrap:anywhere}
+
+details.why{margin-top:44px;border-top:1px solid var(--line);padding-top:14px}
+details.why summary{cursor:pointer;color:var(--muted);font-size:13.5px}
+.why dl{display:grid;grid-template-columns:1fr;gap:14px;margin:16px 0 0;font-size:14px;max-width:62ch}
+.why dt{font-weight:500}
+.why dd{margin:2px 0 0;color:var(--muted)}
+.why cite{font-style:normal;font-family:var(--mono);font-size:11.5px;color:var(--faint)}
+
+/* focus bar */
+.focus{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--line);
+  padding:12px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));z-index:20;box-shadow:0 -8px 24px rgba(0,0,0,.04)}
+.focus-in{max-width:760px;margin:0 auto;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.clock{font-family:var(--mono);font-size:26px;font-variant-numeric:tabular-nums;min-width:86px}
+.focus-task{flex:1;min-width:180px}
+.focus-task .k{font-size:12px;color:var(--muted)}
+.focus-task .v{font-weight:500}
+.focus .btns{display:flex;gap:6px;flex-wrap:wrap}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom, 0px));background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13.5px;z-index:30;max-width:calc(100% - 32px)}
+.empty{color:var(--muted);font-size:14px;padding:10px 6px}
+
+@media (max-width:560px){
+  h1{font-size:32px}
+  .props{grid-template-columns:96px 1fr}
+  .grid2,.grid3{grid-template-columns:1fr}
+  .detail{padding-left:6px}
+  .plan li{grid-template-columns:22px 1fr}
+  .plan li .right{grid-column:2;justify-content:flex-start}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+.settings{margin-top:18px}
+.set-grid{display:grid;gap:18px;margin-top:14px;max-width:62ch}
+.small-note{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+</style>
+
+</head>
+<body>
+<div class="page">
+  <div class="icon-wrap">
+    <button class="icon" id="iconBtn" aria-label="Change page icon" aria-expanded="false"></button>
+    <div class="picker" id="picker" hidden>
+      <div class="picker-grid" id="pickerGrid"></div>
+      <form class="picker-own" id="iconForm">
+        <input class="inp" id="iconIn" type="text" placeholder="Or type / paste any emoji" maxlength="16" autocomplete="off" aria-label="Your own emoji">
+        <button class="btn">Use</button>
+      </form>
+      <button class="btn ghost" id="iconNone" type="button">Remove icon</button>
+    </div>
+  </div>
+  <h1>Next Step</h1>
+  <dl class="props">
+    <dt>Today</dt><dd id="todayLabel"></dd>
+    <dt>Energy</dt><dd><div class="energy" id="energy" role="group" aria-label="Energy today"></div></dd>
+    <dt>Saved</dt><dd class="sync" id="sync">on this device</dd>
+  </dl>
+
+  <div id="nudge"></div>
+
+  <h2>Today’s plan <span class="rule"></span><span class="meta" id="planMeta"></span></h2>
+  <div class="budget" aria-hidden="true"><i id="budgetBar" style="width:0%"></i></div>
+  <ul class="plan" id="plan"></ul>
+  <p class="enough" id="enough"></p>
+  <p class="skipped" id="skipped" hidden></p>
+  <div class="coming" id="coming" hidden></div>
+
+  <h2>Assignments <span class="rule"></span><span class="meta" id="asgMeta"></span></h2>
+  <div class="toolbar">
+    <button class="btn primary" id="addBtn">+ New assignment</button>
+    <button class="btn ghost" id="clearEx" hidden>Clear examples</button>
+  </div>
+  <!-- step 1: describe -->
+  <form class="form" id="form" hidden>
+    <div>
+      <label class="lbl" for="fDesc">Tell me about the assignment</label>
+      <textarea class="inp big" id="fDesc" placeholder="Paste the instructions from Canvas, or just describe it the way you'd tell a friend: “1500-word essay on a canto, due next Friday, haven't started.”"></textarea>
+    </div>
+    <div class="drop" id="drop" role="button" tabindex="0" aria-label="Add files">
+      <strong>Drop files here</strong> or click to choose
+      <span>Screenshots, photos, PDFs (like a rubric) or text files</span>
+    </div>
+    <div class="photos" id="photos"></div>
+    <p class="filenote" id="fileNote" hidden></p>
+    <input type="file" id="fPhotos" accept="image/*,.pdf,application/pdf,.txt,.md,text/plain" multiple hidden>
+    <div class="toolbar" style="margin:0">
+      <span style="flex:1"></span>
+      <button class="btn ghost" type="button" id="cancelBtn">Cancel</button>
+      <button class="btn primary" type="submit" id="readBtn">Read it</button>
+    </div>
+    <p class="thinking" id="readStatus" hidden></p>
+  </form>
+
+  <!-- step 2: review what Claude found -->
+  <form class="form" id="review" hidden>
+    <p class="review-head">Here's what I found. Check it, especially the due date, then save.</p>
+    <div>
+      <label class="lbl" for="rTitle">Assignment</label>
+      <input class="inp" id="rTitle" type="text" autocomplete="off">
+    </div>
+    <div>
+      <span class="lbl">Class</span>
+      <div class="cls-pick" id="clsPick"></div>
+      <div class="field-row" id="newCls" hidden>
+        <input class="inp" id="fNewCls" type="text" placeholder="Class name" style="max-width:220px">
+        <div class="swatches" id="swatches"></div>
+      </div>
+    </div>
+    <div class="grid3">
+      <div><label class="lbl" for="rDue">Due date</label><input class="inp" id="rDue" type="date"></div>
+      <div><label class="lbl" for="rTime">Time</label><input class="inp" id="rTime" type="time"></div>
+      <div><label class="lbl" for="rFeel">How does it feel?</label>
+        <select class="inp" id="rFeel"><option value="1">Fine</option><option value="2" selected>Meh</option><option value="3">Ugh</option></select></div>
+    </div>
+    <p class="flag" id="dueFlag" hidden></p>
+    <div><label class="lbl" for="rGood">Good enough looks like</label>
+      <textarea class="inp" id="rGood"></textarea></div>
+    <div>
+      <span class="lbl">Steps</span>
+      <p class="size" id="rSize" hidden></p>
+      <ul class="rsteps" id="rSteps"></ul>
+      <button class="btn ghost" type="button" id="rAddStep" style="padding-left:0">+ Add a step</button>
+    </div>
+    <div class="toolbar" style="margin:0">
+      <button class="btn ghost" type="button" id="backBtn">Back</button>
+      <span style="flex:1"></span>
+      <button class="btn primary" type="submit" id="saveBtn">Save assignment</button>
+    </div>
+  </form>
+  <div id="list"></div>
+
+  <h2>Parking lot <span class="rule"></span><span class="meta">for thoughts that pop up mid-focus</span></h2>
+  <form id="dumpForm" class="field-row" style="margin:0 0 6px">
+    <input class="inp" id="dumpIn" type="text" placeholder="Write it down so your brain can let it go…" style="flex:1" autocomplete="off">
+  </form>
+  <ul class="dump" id="dump"></ul>
+
+  <details class="why">
+    <summary>Why it works this way</summary>
+    <dl>
+      <div><dt>Procrastination is about feelings, not time</dt>
+        <dd>Putting a task off is a way to escape the bad mood it brings up. That's why each assignment asks how it feels, and "ugh" tasks get the smallest possible first step. <cite>Sirois &amp; Pychyl, 2013</cite></dd></div>
+      <div><dt>Small, concrete steps beat big vague ones</dt>
+        <dd>A task feels doable when the next action is obvious. Every step here starts with a verb and fits in a short sitting. The first one is a two-minute starter. <cite>Steel, 2007</cite></dd></div>
+      <div><dt>Planning too much backfires</dt>
+        <dd>People reliably underestimate how long things take. The plan is capped by your energy, and anything past the cap is a bonus. <cite>Buehler, Griffin &amp; Ross, 1994</cite></dd></div>
+      <div><dt>ADHD brains need the structure outside the head</dt>
+        <dd>Time blindness makes far deadlines feel unreal. The countdown, the visible plan and the timer move the structure onto the page. <cite>Barkley, 1997</cite></dd></div>
+      <div><dt>Done is better than perfect</dt>
+        <dd>Each assignment has a "good enough" line, so you know when to stop polishing. Perfectionism mostly shows up as delay, not quality.</dd></div>
+      <div><dt>Forgive the last slip</dt>
+        <dd>Students who forgave themselves for procrastinating before one exam procrastinated less before the next. Overdue items get a reset, not a scolding. <cite>Wohl, Pychyl &amp; Bennett, 2010</cite></dd></div>
+    </dl>
+  </details>
+
+  <details class="why settings" id="settings">
+    <summary>Settings &amp; backup</summary>
+    <div class="set-grid">
+      <div>
+        <label class="lbl" for="apiKey">Claude API key</label>
+        <div class="field-row" style="margin:0">
+          <input class="inp" id="apiKey" type="password" placeholder="sk-ant-…" autocomplete="off" spellcheck="false" style="flex:1;min-width:200px">
+          <button class="btn" type="button" id="saveKey">Save key</button>
+          <button class="btn ghost" type="button" id="clearKey">Remove</button>
+        </div>
+        <p class="small-note" id="keyNote">Optional. With a key, “Read it” and “Break it down” use Claude to read instructions, photos and PDFs. Without one, you get a standard breakdown. The key stays on this device and is sent only to api.anthropic.com. Get one at console.anthropic.com.</p>
+      </div>
+      <div>
+        <span class="lbl">Backup</span>
+        <div class="field-row" style="margin:0">
+          <button class="btn" type="button" id="exportBtn">Export data</button>
+          <button class="btn" type="button" id="importBtn">Import data</button>
+          <input type="file" id="importFile" accept=".json,application/json" hidden>
+        </div>
+        <p class="small-note">Use this to move your planner between the app and the browser extension, or to another computer. Photos aren’t included.</p>
+      </div>
+    </div>
+  </details>
+</div>
+
+<div class="focus" id="focus" hidden>
+  <div class="focus-in">
+    <div class="clock" id="clock">25:00</div>
+    <div class="focus-task"><div class="k" id="focusKind">Focusing on</div><div class="v" id="focusText"></div></div>
+    <div class="btns">
+      <button class="btn" id="fPause">Pause</button>
+      <button class="btn primary" id="fDone">Step done</button>
+      <button class="btn ghost" id="fStop">Stop</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+<div class="page-drop" id="pageDrop" hidden>Drop to add an assignment</div>
+
+<!-- worker script first so PDF.js can run on the main thread when Workers are blocked (file://) -->
+<script src="vendor/pdf.worker.min.js"></script>
+<script src="vendor/pdf.min.js"></script>
+<script src="claude.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
