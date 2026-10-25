@@ -528,7 +528,7 @@ function canvasBlob(c){ return new Promise(r => c.toBlob(b => r(b), "image/jpeg"
 async function readPdf(file){
   // returns {text, pages:[Blob]} — text when the PDF has it, page images when it's a scan
   const lib = window.pdfjsLib; if(!lib) return {text:"", pages:[]};
-  try { lib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"; } catch(e){}
+  try { lib.GlobalWorkerOptions.workerSrc = "vendor/pdf.worker.min.js"; } catch(e){}
   const pdf = await lib.getDocument({data: await file.arrayBuffer()}).promise;
   let text = "";
   for(let i = 1; i <= Math.min(pdf.numPages, 15); i++){
