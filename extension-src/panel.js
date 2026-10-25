@@ -7,8 +7,9 @@ async function reachable(){
   if(!/^https:/.test(APP_URL) || navigator.onLine === false) return false;
   try {
     const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 5000);
-    await fetch(APP_URL, {mode:"no-cors", cache:"no-store", signal:ctl.signal});
-    clearTimeout(t); return true;
+    // GitHub Pages allows cross-origin reads, so a missing site shows up as a 404 here
+    const res = await fetch(APP_URL + "manifest.webmanifest", {cache:"no-store", signal:ctl.signal});
+    clearTimeout(t); return res.ok;
   } catch(e){ return false; }
 }
 
