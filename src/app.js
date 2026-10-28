@@ -279,7 +279,7 @@ function rowHTML(a){
       <button class="check" role="checkbox" aria-checked="${a.done}" aria-label="Mark assignment done" data-act="asgDone" data-a="${a.id}"></button>
       <div style="min-width:0">
         <button class="asg-title" data-act="expand" data-a="${a.id}" aria-expanded="${isOpen}">${esc(a.title)}</button>
-        <div class="step-text"><span class="sub">${tagHTML(a.cls)}${total ? `<span class="prog">${fin}/${total} steps</span>` : `<span class="prog">not broken down</span>`}${a.estimateMin ? `<span class="prog">~${fmtMin(a.estimateMin)}</span>` : ""}<span class="feel">feels ${feelWord(a.dread)}</span>${!a.done && !isActive(a) ? `<span class="prog">starts ${startsIn(a) === 1 ? "tomorrow" : (() => { const d = new Date(); d.setDate(d.getDate()+startsIn(a)); return d.toLocaleDateString(undefined,{weekday:"short", month:"short", day:"numeric"}); })()}</span>` : ""}${a.example ? `<span class="ex">example</span>` : ""}</span></div>
+        <div class="step-text"><span class="sub">${tagHTML(a.cls)}${total ? `<span class="prog">${fin}/${total} steps</span>` : `<span class="prog">not broken down</span>`}${KINDS.includes(a.kind) ? `<span class="prog">${esc(kindLabel(a.kind))}</span>` : ""}${a.estimateMin ? `<span class="prog">~${fmtMin(a.estimateMin)}</span>` : ""}<span class="feel">feels ${feelWord(a.dread)}</span>${!a.done && !isActive(a) ? `<span class="prog">starts ${startsIn(a) === 1 ? "tomorrow" : (() => { const d = new Date(); d.setDate(d.getDate()+startsIn(a)); return d.toLocaleDateString(undefined,{weekday:"short", month:"short", day:"numeric"}); })()}</span>` : ""}${a.example ? `<span class="ex">example</span>` : ""}</span></div>
       </div>
       <span class="due ${a.done ? "later" : d.cls}">${a.done ? "done" : esc(d.txt)}</span>
     </div>
@@ -296,6 +296,7 @@ function detailHTML(a){
   const busy = a._busy;
   return `<div class="detail">
     ${busy ? `<p class="thinking">Breaking it into small steps…</p>` : ""}
+    <div class="cls-pick kinds" role="group" aria-label="Type of work">${KINDS.map(k => `<button type="button" aria-pressed="${kindOf(a)===k}" data-act="kind" data-k="${k}" data-a="${a.id}" ${busy?"disabled":""}>${esc(kindLabel(k))}</button>`).join("")}</div>
     ${!busy && (a.size || a.estimateMin) ? `<p class="size">${sizeLine(a.size, a.estimateMin, a.sizeWhy)}</p>` : ""}
     <ul class="steps">${steps}</ul>
     <form class="field-row" data-act="addStep" data-a="${a.id}" style="margin-top:0">
@@ -342,26 +343,35 @@ function render(){
 }
 
 // ---------- breakdown ----------
-function fallbackSteps(a){
-  const t = (a.title + " " + (a.notes||"") + " " + (a.source||"")).toLowerCase();
-  let s;
-  if(/exam|quiz|test|midterm|final/.test(t)) s = [["Open your notes and list the topics covered",3],["Mark each topic: know it / shaky / no idea",10],["Make flashcards for the shaky topics",20],["Do practice questions on the hardest topic",25],["Quiz yourself on everything once",20]];
-  else if(/essay|paper|write|draft|report|proposal|review/.test(t)) s = [["Open a blank doc and paste in the prompt",2],["Brain-dump everything you know, no editing",15],["Write a rough thesis or main point",10],["Outline 3–4 sections in bullets",15],["Draft the easiest section first",25],["Draft the rest, ugly is fine",30]];
-  else if(/read|chapter|canto|article/.test(t)) s = [["Open the reading and look at the headings only",2],["Read the first section and jot 3 notes",20],["Read the next section and jot 3 notes",20],["Write a 3-sentence summary",10]];
-  else s = [["Open everything you need for it",2],["Write down what 'done' means for this",5],["Do the first concrete piece",20],["Do the next piece",20],["Check it against the instructions",10]];
-  return s;
-}
+// ---------- kind of work: reading, essay, math, exam prep, other ----------
+const KINDS = NextStepKinds.ORDER;
+const kindLabel = NextStepKinds.label;
+const kindOf = a => KINDS.includes(a.kind) ? a.kind : NextStepKinds.guess(a.title, [a.notes, a.source].join("\n"));
+const KIND_RULES = {
+  reading: `Reading: split the reading into chunks by section or page range using the real page or chapter numbers (e.g. "Read pages 12–25 and jot 3 notes"), about 20–25 minutes each. Active reading, not highlighting: note key terms or write a short summary. If there is a quiz or response, it is the last step, done with notes open.`,
+  essay: `Essay / writing: go prompt → brain-dump → rough thesis or main point → outline → draft one section per step (name the section) → for large work only, one revision pass against the rubric. Use the real word count and number of sources. Drafts are ugly first passes.`,
+  math: `Math / problems: read every problem once without solving, then work in small batches named by their real numbers (e.g. "Solve problems 1–3"), easiest first. Add a step to look at the closest lecture example or worked solution before the hard ones, and say to mark a problem and move on after 15 minutes stuck. End with writing up or uploading the answers.`,
+  exam: `Exam prep: list the topics covered, sort them into know it / shaky / no idea, then practice-question and flashcard steps on the shaky topics first, and finish with one mixed self-test. Practice questions beat rereading.`,
+  other: `Other: name the actual deliverable and split it into its concrete pieces.`
+};
+const TEMPLATES = {
+  exam: [["Open your notes and list the topics covered",3],["Mark each topic: know it / shaky / no idea",10],["Make flashcards for the shaky topics",20],["Do practice questions on the hardest topic",25],["Quiz yourself on everything once",20]],
+  essay: [["Open a blank doc and paste in the prompt",2],["Brain-dump everything you know, no editing",15],["Write a rough thesis or main point",10],["Outline 3–4 sections in bullets",15],["Draft the easiest section first",25],["Draft the rest, ugly is fine",30]],
+  reading: [["Open the reading and look at the headings only",2],["Read the first section and jot 3 notes",20],["Read the next section and jot 3 notes",20],["Write a 3-sentence summary",10]],
+  math: [["Open the problem set and read every problem once, no solving",3],["Mark each problem: easy / unsure / no idea",5],["Solve the easy problems first",25],["Look at the lecture example closest to the hardest problem",15],["Try the rest; mark any you're stuck on for 15 min and move on",30],["Write up the answers and submit",15]],
+  other: [["Open everything you need for it",2],["Write down what 'done' means for this",5],["Do the first concrete piece",20],["Do the next piece",20],["Check it against the instructions",10]]
+};
+const fallbackSteps = a => TEMPLATES[kindOf(a)];
 
-async function breakdown(id){
-  const a = state.assignments.find(x => x.id === id); if(!a) return;
-  openId = id; a._busy = true; claudeErr = ""; render();
-  let steps = null, good = null;
-  if(sample){
-    try {
-      const n = daysUntil(a.due);
-      const prompt = `You help a university psychology student who wants support with procrastination, ADHD-style focus and perfectionism. Break this assignment into small, concrete steps.
+// AI steps for one assignment, shaped to its kind; null without a key or on error
+async function aiSteps(a){
+  if(!sample) return null;
+  try {
+    const n = daysUntil(a.due);
+    const prompt = `You help a university psychology student who wants support with procrastination, ADHD-style focus and perfectionism. Break this assignment into small, concrete steps.
 
 Assignment: ${a.title}
+Type of work: ${kindLabel(kindOf(a))}
 Class: ${a.cls || "unknown"}
 Due: ${a.due ? a.due + (n !== null ? ` (${n} days from today)` : "") : "no date"}
 How it feels to start: ${feelWord(a.dread)}
@@ -369,6 +379,8 @@ Student notes: ${a.notes || "none"}
 Original instructions: ${(a.source || "none").slice(0, 6000)}
 
 ${SIZE_RULES}
+
+Shape the steps to the type of work. ${KIND_RULES[kindOf(a)]}
 
 Rules for the steps:
 - In order. Each starts with a verb and names one physical action (open, write, list, read pages, email).
@@ -378,17 +390,24 @@ Rules for the steps:
 - Only "large" work ends with a step that checks it against the rubric or instructions; small and medium work has no separate checking or proofreading step, because submitting is the finish line.
 - Also write "goodEnough": one short sentence describing a "done is better than perfect" finish line. For small work make it blunt, like "Submitted counts as done." or "Any honest answer gets the points."
 Return only JSON: {"size":"small|medium|large","estimateMin":90,"sizeWhy":"...","steps":[{"text":"...","min":10}],"goodEnough":"..."}`;
-      const r = await sample.json(prompt, {modelTier:"quick"});
-      if(r && Array.isArray(r.steps) && r.steps.length){
-        if(r.size) a.size = String(r.size); if(Number(r.estimateMin)) a.estimateMin = Math.round(Number(r.estimateMin)); if(r.sizeWhy) a.sizeWhy = String(r.sizeWhy).slice(0,160);
-        steps = r.steps.slice(0, maxSteps(r.size)).map(x => [String(x.text||"").slice(0,140), Math.max(2, Math.min(60, Number(x.min)||15))]).filter(x => x[0]);
-        good = typeof r.goodEnough === "string" ? r.goodEnough.slice(0,200) : null;
-      }
-    } catch(e){
-      noteClaudeError(e);
-    }
+    const r = await sample.json(prompt, {modelTier:"quick"});
+    if(!r || !Array.isArray(r.steps)) return null;
+    const steps = r.steps.slice(0, maxSteps(r.size)).map(x => [String(x.text||"").slice(0,140), Math.max(2, Math.min(60, Number(x.min)||15))]).filter(x => x[0]);
+    return steps.length ? {size: r.size ? String(r.size) : "", estimateMin: Math.round(Number(r.estimateMin) || 0), sizeWhy: r.sizeWhy ? String(r.sizeWhy).slice(0,160) : "",
+      steps, goodEnough: typeof r.goodEnough === "string" ? r.goodEnough.slice(0,200) : null} : null;
+  } catch(e){
+    noteClaudeError(e); return null;
   }
-  if(!steps || !steps.length){ steps = fallbackSteps(a); toast(sample ? (claudeErr || "Used a standard breakdown. Edit the steps to fit.") : "Used a standard breakdown. Add a Claude or Gemini API key in Settings for tailored steps."); }
+}
+
+async function breakdown(id){
+  const a = state.assignments.find(x => x.id === id); if(!a) return;
+  openId = id; a._busy = true; claudeErr = ""; render();
+  a.kind = kindOf(a);
+  const r = await aiSteps(a);
+  let steps = r && r.steps, good = r && r.goodEnough;
+  if(r){ if(r.size) a.size = r.size; if(r.estimateMin) a.estimateMin = r.estimateMin; if(r.sizeWhy) a.sizeWhy = r.sizeWhy; }
+  if(!steps){ steps = fallbackSteps(a); toast(sample ? (claudeErr || `Used a standard ${kindLabel(a.kind).toLowerCase()} breakdown. Edit the steps to fit.`) : `Used a standard ${kindLabel(a.kind).toLowerCase()} breakdown. Add a Claude or Gemini API key in Settings for tailored steps.`); }
   const keep = a.steps.filter(s => s.done);
   a.steps = keep.concat(steps.map(([t,m]) => ({id:uid(), text:t, min:m, done:false, doneAt:null})));
   if(good && !a.goodEnough) a.goodEnough = good;
@@ -449,7 +468,11 @@ document.addEventListener("click", e => {
     case "pull": if(a){ a.pulledOn = todayISO(); toast("Pulled forward as a bonus. Stop whenever you want."); save(); render(); } break;
     case "unskip": if(a){ a.skippedOn = ""; a.skipCount = Math.max(0, (a.skipCount || 1) - 1); save(); render(); } break;
     case "breakdown": breakdown(aId); break;
-    case "expand": openId = openId === aId ? null : aId; renderList(); break;
+    case "expand": openId = openId === aId ? null : aId;
+      // first time it's opened: work out what kind of assignment it is
+      if(a && openId && !KINDS.includes(a.kind)){ a.kind = kindOf(a); save(); }
+      renderList(); break;
+    case "kind": if(a && b.dataset.k !== a.kind){ a.kind = b.dataset.k; save(); breakdown(aId); } break;
     case "asgDone": if(a){ a.done = !a.done; if(a.done) toast("Handed in. That's a real win."); save(); render(); } break;
     case "delStep": if(a){ a.steps = a.steps.filter(s => s.id !== sId); save(); render(); } break;
     case "delAsg": if(a){
@@ -490,7 +513,7 @@ $("clsPick").addEventListener("click", e => { const b = e.target.closest("button
 $("swatches").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; pickColor = b.dataset.col; renderClsPick(); });
 // ----- step 1: describe + photos -----
 let pending = {photos:[]};   // photos: [{id, blob, url}]
-let reviewSteps = [], reviewSize = {};
+let reviewSteps = [], reviewSize = {}, reviewKind = "other";
 function fmtMin(m){ if(!m) return ""; if(m < 60) return `${m} min`; const h = m/60; return `${Math.round(h*2)/2} h`.replace(".5 h","½ h"); }
 function sizeLine(size, est, why){
   if(!size && !est) return "";
@@ -624,6 +647,7 @@ async function readAssignment(text, photos){
   const classList = state.classes.map(c => c.name).join(", ");
   let canSeeImages = false;
   if(sample && photos.length){ try { canSeeImages = !!(await sample.limits()).images; } catch(e){} }
+  const guessed = (pending.hints && pending.hints.kind) || NextStepKinds.guess(text.split("\n")[0], text);
   if(sample){
     const prompt = `You help a university psychology student who struggles with procrastination, ADHD-style focus and perfectionism. Read the assignment below${photos.length && canSeeImages ? " and in the attached image(s)" : ""} and set it up in their planner.
 
@@ -642,25 +666,28 @@ Return only JSON with these keys:
 - "time": "HH:MM" 24-hour or "".
 - "dueConfidence": "sure", "guessed" or "none".
 - "goodEnough": one sentence describing a done-is-better-than-perfect finish line, based on the actual requirements. For small work make it blunt, like "Submitted counts as done." or "Any honest answer gets the points."
+- "kind": the type of work, one of "reading", "essay" (any writing), "math" (math, stats or other problem solving), "exam" (studying for a test) or "other". A keyword guess says "${guessed}"; keep it unless the instructions show otherwise. If it mixes types, pick the one that takes the most time.
 - "size": "small", "medium" or "large" (rules below).
 - "estimateMin": your realistic estimate of the total minutes of work.
 - "sizeWhy": one short sentence on why, naming the requirement that drives the time (e.g. "8 pages with 6 peer-reviewed sources").
 - "steps": the steps in order, each {"text": "...", "min": number}. The minutes should add up to roughly estimateMin. Each step starts with a verb and names one concrete action. Step 1 is a 2-minute starter that is almost too easy to refuse. Use the real requirements (length, sources, rubric items). Drafts are rough first passes. Only "large" work ends with a step that checks it against the rubric or instructions; small and medium work has no separate checking or proofreading step, because submitting is the finish line.
+
+Shape the steps to the kind of work:
+${KINDS.map(k => "- " + KIND_RULES[k]).join("\n")}
 
 ${SIZE_RULES}`;
     try {
       const opts = {modelTier:"default"};
       if(canSeeImages) opts.images = photos.map(p => p.blob);
       const r = await sample.json(prompt, opts);
-      if(r && typeof r === "object") return {r: withHints(r), imagesSeen: canSeeImages};
+      if(r && typeof r === "object"){ if(!KINDS.includes(r.kind)) r.kind = guessed; return {r: withHints(r), imagesSeen: canSeeImages}; }
     } catch(e){
       noteClaudeError(e);
     }
   }
   // fallback without Claude
   const first = (text.split("\n").find(l => l.trim()) || "New assignment").trim().slice(0, 60);
-  const fake = {title:first, notes:text};
-  return {r:withHints({title:first, cls:"", due:"", time:"", dueConfidence:"none", goodEnough:"", steps:fallbackSteps(fake).map(([t,m]) => ({text:t, min:m}))}), fallback:true};
+  return {r:withHints({title:first, cls:"", due:"", time:"", dueConfidence:"none", goodEnough:"", kind:guessed, steps:TEMPLATES[guessed].map(([t,m]) => ({text:t, min:m}))}), fallback:true};
 }
 // details the extension read straight off the page (MyCourses) fill whatever Claude didn't
 function withHints(r){
@@ -706,6 +733,7 @@ function fillReview(r){
   renderClsPick();
   reviewSize = {size: ["small","medium","large"].includes(r.size) ? r.size : "", estimateMin: Math.round(Number(r.estimateMin) || 0), sizeWhy: String(r.sizeWhy || "").slice(0,160)};
   renderSize();
+  reviewKind = KINDS.includes(r.kind) ? r.kind : "other"; renderKindPick();
   reviewSteps = (Array.isArray(r.steps) ? r.steps : []).slice(0, maxSteps(reviewSize.size))
     .map(s => ({id:uid(), text:String(s.text || "").slice(0, 140), min:Math.max(2, Math.min(60, Number(s.min) || 15))}))
     .filter(s => s.text);
@@ -725,6 +753,25 @@ $("rSteps").addEventListener("input", e => {
 $("rSteps").addEventListener("click", e => {
   const id = e.target.dataset && e.target.dataset.rsx; if(!id) return;
   reviewSteps = reviewSteps.filter(x => x.id !== id); renderReviewSteps();
+});
+// picking another type in the review re-shapes the steps for it
+function renderKindPick(){
+  $("kindPick").innerHTML = KINDS.map(k => `<button type="button" aria-pressed="${reviewKind===k}" data-k="${k}">${esc(kindLabel(k))}</button>`).join("");
+}
+$("kindPick").addEventListener("click", async e => {
+  const b = e.target.closest("button"); if(!b || b.dataset.k === reviewKind || $("kindPick").dataset.busy) return;
+  reviewKind = b.dataset.k; renderKindPick();
+  const draft = {title:$("rTitle").value.trim(), cls:pickCls === "__new" ? $("fNewCls").value.trim() : pickCls, due:$("rDue").value,
+    dread:Number($("rFeel").value), notes:"", source:$("fDesc").value.trim(), kind:reviewKind};
+  claudeErr = "";
+  if(sample){ $("kindPick").dataset.busy = "1"; $("rSize").hidden = false; $("rSize").textContent = `Re-shaping the steps for ${kindLabel(reviewKind).toLowerCase()}…`; }
+  const r = await aiSteps(draft);
+  delete $("kindPick").dataset.busy;
+  if(r){ reviewSize = {size:r.size, estimateMin:r.estimateMin, sizeWhy:r.sizeWhy}; if(r.goodEnough && !$("rGood").value.trim()) $("rGood").value = r.goodEnough; }
+  else if(claudeErr) toast(claudeErr);
+  renderSize();
+  reviewSteps = (r ? r.steps : TEMPLATES[reviewKind]).map(([t,m]) => ({id:uid(), text:t, min:m}));
+  renderReviewSteps();
 });
 $("rAddStep").addEventListener("click", () => {
   const s = {id:uid(), text:"", min:15}; reviewSteps.push(s); renderReviewSteps(); $("rs-"+s.id).focus();
@@ -749,7 +796,7 @@ $("review").addEventListener("submit", async e => {
     }
   }
   const a = {id:uid(), title, cls:c, due:$("rDue").value, time:$("rTime").value, dread:Number($("rFeel").value),
-    goodEnough:$("rGood").value.trim(), notes:"", size:reviewSize.size || "", estimateMin:reviewSize.estimateMin || 0, sizeWhy:reviewSize.sizeWhy || "", source:$("fDesc").value.trim().slice(0, 15000), files,
+    goodEnough:$("rGood").value.trim(), notes:"", kind:reviewKind, size:reviewSize.size || "", estimateMin:reviewSize.estimateMin || 0, sizeWhy:reviewSize.sizeWhy || "", source:$("fDesc").value.trim().slice(0, 15000), files,
     done:false, created:Date.now(),
     steps:reviewSteps.filter(s => s.text.trim()).map(s => ({id:uid(), text:s.text.trim(), min:s.min, done:false, doneAt:null}))};
   state.assignments.push(a);

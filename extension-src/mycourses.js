@@ -18,7 +18,8 @@ function read(){
   const dates = text(q('[data-region="activity-dates"], .activity-dates, .description .activity-dates'));
   const intro = text(q(".activity-description, #intro, [role=main] .box.generalbox"));
   const status = text(q(".submissionstatustable, .submissionsummarytable, [data-region='submission-status']"));
-  return {title, course, dates, intro, status, when: findDue(dates, status)};
+  const module = (location.pathname.match(KINDS) || [])[1];
+  return {title, course, dates, intro, status, when: findDue(dates, status), kind: NextStepKinds.guess(title, intro, module)};
 }
 
 const isSubmitted = s => /submitted for grading|palautettu arvioitavaksi|l(ä|a)hetetty arvioitavaksi|inskick(ad|at) för bedömning/i.test(s);
@@ -100,14 +101,14 @@ function show(info, remember){
   const w = info.when;
   const due = w ? "due " + new Date(w.due + "T" + (w.time || "12:00")).toLocaleString(undefined, w.time
     ? {weekday:"short", month:"short", day:"numeric", hour:"2-digit", minute:"2-digit"} : {weekday:"short", month:"short", day:"numeric"}) : "no due date found";
-  root.querySelector(".d").textContent = [info.course, due].filter(Boolean).join(" · ");
+  root.querySelector(".d").textContent = [NextStepKinds.label(info.kind), info.course, due].filter(Boolean).join(" · ");
   root.addEventListener("click", e => {
     const a = e.target.closest("button")?.dataset.a; if(!a) return;
     if(a === "add"){
       const body = [info.title, info.course && `Course: ${info.course}`, info.dates, info.intro && `Instructions:\n${info.intro.slice(0, 10000)}`]
         .filter(Boolean).join("\n\n") + `\n\n(From MyCourses: ${pageKey})`;
       // hints let the app fill the form straight from the page, with or without Claude
-      const hints = {title: info.title.slice(0, 80), cls: info.course ? courseCode(info.course) : "", due: w ? w.due : "", time: w ? w.time : ""};
+      const hints = {title: info.title.slice(0, 80), cls: info.course ? courseCode(info.course) : "", due: w ? w.due : "", time: w ? w.time : "", kind: info.kind};
       chrome.runtime.sendMessage({type:"add", text: body, hints});
       remember("added");
     } else if(a === "never") remember("dismissed");

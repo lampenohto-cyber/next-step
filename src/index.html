@@ -153,6 +153,7 @@ textarea.inp{resize:vertical;min-height:54px}
 .cls-pick button{border:1px solid var(--line);background:var(--bg);border-radius:4px;padding:1px 8px;font-size:12.5px;display:inline-flex;gap:6px;align-items:center}
 .cls-pick button[aria-pressed="true"]{border-color:var(--fg)}
 .cls-pick .dot{width:8px;height:8px;border-radius:50%}
+.detail .kinds{margin:0 0 10px}
 .swatches{display:flex;gap:6px;flex-wrap:wrap}
 .swatches button{width:20px;height:20px;border-radius:50%;border:2px solid transparent;padding:0}
 .swatches button[aria-pressed="true"]{border-color:var(--fg)}
@@ -300,6 +301,10 @@ details.why summary{cursor:pointer;color:var(--muted);font-size:13.5px}
     <div><label class="lbl" for="rGood">Good enough looks like</label>
       <textarea class="inp" id="rGood"></textarea></div>
     <div>
+      <span class="lbl">Type of work</span>
+      <div class="cls-pick" id="kindPick" role="group" aria-label="Type of work"></div>
+    </div>
+    <div>
       <span class="lbl">Steps</span>
       <p class="size" id="rSize" hidden></p>
       <ul class="rsteps" id="rSteps"></ul>
@@ -380,6 +385,7 @@ details.why summary{cursor:pointer;color:var(--muted);font-size:13.5px}
 <script src="vendor/pdf.worker.min.js"></script>
 <script src="vendor/pdf.min.js"></script>
 <script src="claude.js"></script>
+<script src="kinds.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
